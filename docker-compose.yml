@@ -1,0 +1,212 @@
+name: vkr-lab
+
+x-app-env: &app-env
+  JAVA_TOOL_OPTIONS: "-Xmx160m -Xss512k -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m -XX:TieredStopAtLevel=1"
+  KAFKA_BOOTSTRAP: kafka:9092
+  OTLP_ENDPOINT: http://jaeger:4318/v1/traces
+
+x-app-healthcheck: &app-healthcheck
+  test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health/readiness || exit 1"]
+  interval: 10s
+  timeout: 5s
+  retries: 15
+  start_period: 40s
+
+services:
+  traefik:
+    image: traefik:v3.1
+    command:
+      - --providers.file.filename=/etc/traefik/dynamic.yml
+      - --providers.file.watch=true
+      - --entrypoints.web.address=:80
+      - --api.insecure=true
+    ports:
+      - "8080:80"
+      - "8081:8080"
+    volumes:
+      - ./compose/traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
+    depends_on:
+      - krakend
+    mem_limit: 64m
+    restart: unless-stopped
+
+  krakend:
+    image: krakend:2.13.11
+    command: ["run", "-c", "/etc/krakend/krakend.json"]
+    volumes:
+      - ./krakend:/etc/krakend:ro
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      video-service:
+        condition: service_healthy
+      recommendation-service:
+        condition: service_healthy
+    mem_limit: 160m
+    restart: unless-stopped
+
+  auth-service:
+    build:
+      context: .
+      args:
+        MODULE: auth-service
+    image: auth-service:1.0
+    environment:
+      <<: *app-env
+      DB_URL: jdbc:postgresql://auth-db:5432/auth_db
+      DB_USER: auth_app
+      DB_PASSWORD: lab_password
+      REDIS_HOST: redis
+      JWT_SECRET: "0123456789abcdef0123456789abcdef"
+    depends_on:
+      auth-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck: *app-healthcheck
+    mem_limit: 400m
+    restart: unless-stopped
+
+  video-service:
+    build:
+      context: .
+      args:
+        MODULE: video-service
+    image: video-service:1.0
+    environment:
+      <<: *app-env
+      DB_URL: jdbc:postgresql://video-db:5432/video_db
+      DB_USER: video_app
+      DB_PASSWORD: lab_password
+    depends_on:
+      video-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck: *app-healthcheck
+    mem_limit: 400m
+    restart: unless-stopped
+
+  recommendation-service:
+    build:
+      context: .
+      args:
+        MODULE: recommendation-service
+    image: recommendation-service:1.0
+    environment:
+      <<: *app-env
+      DB_URL: jdbc:postgresql://rec-db:5432/rec_db
+      DB_USER: rec_app
+      DB_PASSWORD: lab_password
+      VIDEO_SERVICE_URL: http://video-service:8080
+    depends_on:
+      rec-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck: *app-healthcheck
+    mem_limit: 400m
+    restart: unless-stopped
+
+  auth-db:
+    image: postgres:16-alpine
+    command: ["postgres", "-c", "max_connections=30", "-c", "shared_buffers=32MB"]
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: auth_app
+      POSTGRES_PASSWORD: lab_password
+    volumes:
+      - auth-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U auth_app -d auth_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    mem_limit: 256m
+    restart: unless-stopped
+
+  video-db:
+    image: postgres:16-alpine
+    command: ["postgres", "-c", "max_connections=30", "-c", "shared_buffers=32MB"]
+    environment:
+      POSTGRES_DB: video_db
+      POSTGRES_USER: video_app
+      POSTGRES_PASSWORD: lab_password
+    volumes:
+      - video-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U video_app -d video_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    mem_limit: 256m
+    restart: unless-stopped
+
+  rec-db:
+    image: postgres:16-alpine
+    command: ["postgres", "-c", "max_connections=30", "-c", "shared_buffers=32MB"]
+    environment:
+      POSTGRES_DB: rec_db
+      POSTGRES_USER: rec_app
+      POSTGRES_PASSWORD: lab_password
+    volumes:
+      - rec-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rec_app -d rec_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    mem_limit: 256m
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "32mb", "--maxmemory-policy", "volatile-lru"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    mem_limit: 64m
+    restart: unless-stopped
+
+  kafka:
+    image: apache/kafka:3.7.0
+    environment:
+      KAFKA_NODE_ID: "1"
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "1"
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: "0"
+      KAFKA_HEAP_OPTS: "-Xmx320m -Xms320m"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list > /dev/null 2>&1"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 20s
+    mem_limit: 640m
+    restart: unless-stopped
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+      MEMORY_MAX_TRACES: "2000"
+    ports:
+      - "16686:16686"
+    mem_limit: 256m
+    restart: unless-stopped
+
+volumes:
+  auth-db-data:
+  video-db-data:
+  rec-db-data:

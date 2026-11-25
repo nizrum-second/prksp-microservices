@@ -1,0 +1,455 @@
+{
+  "$schema": "https://www.krakend.io/schema/krakend.json",
+  "version": 3,
+  "name": "vkr-gateway",
+  "port": 8080,
+  "timeout": "10s",
+  "cache_ttl": "0s",
+  "endpoints": [
+    {
+      "endpoint": "/api/auth/register",
+      "method": "POST",
+      "output_encoding": "no-op",
+      "input_headers": [
+        "Content-Type",
+        "traceparent",
+        "X-Request-ID"
+      ],
+      "backend": [
+        {
+          "url_pattern": "/api/auth/register",
+          "encoding": "no-op",
+          "host": [
+            "http://auth-service:8080"
+          ]
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/auth/login",
+      "method": "POST",
+      "output_encoding": "no-op",
+      "input_headers": [
+        "Content-Type",
+        "traceparent",
+        "X-Request-ID"
+      ],
+      "backend": [
+        {
+          "url_pattern": "/api/auth/login",
+          "encoding": "no-op",
+          "host": [
+            "http://auth-service:8080"
+          ]
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/auth/logout",
+      "method": "POST",
+      "output_encoding": "no-op",
+      "input_headers": [
+        "Content-Type",
+        "traceparent",
+        "Authorization",
+        "X-User-Id",
+        "X-Request-ID"
+      ],
+      "backend": [
+        {
+          "url_pattern": "/api/auth/logout",
+          "encoding": "no-op",
+          "host": [
+            "http://auth-service:8080"
+          ]
+        }
+      ],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256",
+          "jwk_local_path": "/etc/krakend/jwk.json",
+          "disable_jwk_security": true,
+          "propagate_claims": [
+            [
+              "sub",
+              "X-User-Id"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "endpoint": "/api/auth/me",
+      "method": "GET",
+      "output_encoding": "no-op",
+      "input_headers": [
+        "Content-Type",
+        "traceparent",
+        "Authorization",
+        "X-User-Id",
+        "X-Request-ID"
+      ],
+      "backend": [
+        {
+          "url_pattern": "/api/auth/me",
+          "encoding": "no-op",
+          "host": [
+            "http://auth-service:8080"
+          ]
+        }
+      ],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256",
+          "jwk_local_path": "/etc/krakend/jwk.json",
+          "disable_jwk_security": true,
+          "propagate_claims": [
+            [
+              "sub",
+              "X-User-Id"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "endpoint": "/api/videos",
+      "method": "GET",
+      "output_encoding": "no-op",
+      "input_headers": [
+        "Content-Type",
+        "traceparent",
+        "Authorization",
+        "X-User-Id",
+        "X-Request-ID"
+      ],
+      "backend": [
+        {
+          "url_pattern": "/api/videos",
+          "encoding": "no-op",
+          "host": [
+            "http://video-service:8080"
+          ]
+        }
+      ],
+      "input_query_strings": [
+        "category",
+        "page",
+        "size"
+      ],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256",
+          "jwk_local_path": "/etc/krakend/jwk.json",
+          "disable_jwk_security": true,
+          "propagate_claims": [
+            [
+              "sub",
+              "X-User-Id"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "endpoint": "/api/videos",
+      "method": "POST",
+      "output_encoding": "no-op",
+      "input_headers": [
+        "Content-Type",
+        "traceparent",
+        "Authorization",
+        "X-User-Id",
+        "X-Request-ID"
+      ],
+      "backend": [
+        {
+          "url_pattern": "/api/videos",
+          "encoding": "no-op",
+          "host": [
+            "http://video-service:8080"
+          ]
+        }
+      ],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256",
+          "jwk_local_path": "/etc/krakend/jwk.json",
+          "disable_jwk_security": true,
+          "propagate_claims": [
+            [
+              "sub",
+              "X-User-Id"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "endpoint": "/api/videos/{id}",
+      "method": "GET",
+      "output_encoding": "no-op",
+      "input_headers": [
+        "Content-Type",
+        "traceparent",
+        "Authorization",
+        "X-User-Id",
+        "X-Request-ID"
+      ],
+      "backend": [
+        {
+          "url_pattern": "/api/videos/{id}",
+          "encoding": "no-op",
+          "host": [
+            "http://video-service:8080"
+          ]
+        }
+      ],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256",
+          "jwk_local_path": "/etc/krakend/jwk.json",
+          "disable_jwk_security": true,
+          "propagate_claims": [
+            [
+              "sub",
+              "X-User-Id"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "endpoint": "/api/videos/{id}",
+      "method": "PUT",
+      "output_encoding": "no-op",
+      "input_headers": [
+        "Content-Type",
+        "traceparent",
+        "Authorization",
+        "X-User-Id",
+        "X-Request-ID"
+      ],
+      "backend": [
+        {
+          "url_pattern": "/api/videos/{id}",
+          "encoding": "no-op",
+          "host": [
+            "http://video-service:8080"
+          ]
+        }
+      ],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256",
+          "jwk_local_path": "/etc/krakend/jwk.json",
+          "disable_jwk_security": true,
+          "propagate_claims": [
+            [
+              "sub",
+              "X-User-Id"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "endpoint": "/api/videos/{id}",
+      "method": "DELETE",
+      "output_encoding": "no-op",
+      "input_headers": [
+        "Content-Type",
+        "traceparent",
+        "Authorization",
+        "X-User-Id",
+        "X-Request-ID"
+      ],
+      "backend": [
+        {
+          "url_pattern": "/api/videos/{id}",
+          "encoding": "no-op",
+          "host": [
+            "http://video-service:8080"
+          ]
+        }
+      ],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256",
+          "jwk_local_path": "/etc/krakend/jwk.json",
+          "disable_jwk_security": true,
+          "propagate_claims": [
+            [
+              "sub",
+              "X-User-Id"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "endpoint": "/api/videos/{id}/rating",
+      "method": "POST",
+      "output_encoding": "no-op",
+      "input_headers": [
+        "Content-Type",
+        "traceparent",
+        "Authorization",
+        "X-User-Id",
+        "X-Request-ID"
+      ],
+      "backend": [
+        {
+          "url_pattern": "/api/videos/{id}/rating",
+          "encoding": "no-op",
+          "host": [
+            "http://video-service:8080"
+          ]
+        }
+      ],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256",
+          "jwk_local_path": "/etc/krakend/jwk.json",
+          "disable_jwk_security": true,
+          "propagate_claims": [
+            [
+              "sub",
+              "X-User-Id"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "endpoint": "/api/recommendations",
+      "method": "GET",
+      "output_encoding": "no-op",
+      "input_headers": [
+        "Content-Type",
+        "traceparent",
+        "Authorization",
+        "X-User-Id",
+        "X-Request-ID"
+      ],
+      "backend": [
+        {
+          "url_pattern": "/api/recommendations",
+          "encoding": "no-op",
+          "host": [
+            "http://recommendation-service:8080"
+          ]
+        }
+      ],
+      "input_query_strings": [
+        "limit"
+      ],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256",
+          "jwk_local_path": "/etc/krakend/jwk.json",
+          "disable_jwk_security": true,
+          "propagate_claims": [
+            [
+              "sub",
+              "X-User-Id"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "endpoint": "/api/health",
+      "method": "GET",
+      "output_encoding": "json",
+      "backend": [
+        {
+          "url_pattern": "/actuator/health",
+          "host": [
+            "http://auth-service:8080"
+          ],
+          "group": "auth-service",
+          "allow": [
+            "status",
+            "components"
+          ],
+          "extra_config": {
+            "backend/http": {
+              "return_error_details": "auth-service"
+            }
+          }
+        },
+        {
+          "url_pattern": "/actuator/health",
+          "host": [
+            "http://video-service:8080"
+          ],
+          "group": "video-service",
+          "allow": [
+            "status",
+            "components"
+          ],
+          "extra_config": {
+            "backend/http": {
+              "return_error_details": "video-service"
+            }
+          }
+        },
+        {
+          "url_pattern": "/actuator/health",
+          "host": [
+            "http://recommendation-service:8080"
+          ],
+          "group": "recommendation-service",
+          "allow": [
+            "status",
+            "components"
+          ],
+          "extra_config": {
+            "backend/http": {
+              "return_error_details": "recommendation-service"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "extra_config": {
+    "telemetry/opentelemetry": {
+      "service_name": "krakend",
+      "skip_paths": [
+        "/__health"
+      ],
+      "metric_reporting_period": 30,
+      "exporters": {
+        "otlp": [
+          {
+            "name": "jaeger",
+            "host": "jaeger",
+            "port": 4317,
+            "use_http": false
+          }
+        ]
+      },
+      "layers": {
+        "global": {
+          "disable_metrics": true,
+          "disable_traces": false,
+          "disable_propagation": false
+        },
+        "proxy": {
+          "disable_metrics": true,
+          "disable_traces": false
+        },
+        "backend": {
+          "metrics": {
+            "disable_stage": true
+          },
+          "traces": {
+            "disable_stage": false
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,48 @@
+server:
+  port: 8080
+  tomcat:
+    threads:
+      max: 20
+
+spring:
+  application:
+    name: video-service
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/video_db}
+    username: ${DB_USER:video_app}
+    password: ${DB_PASSWORD:lab_password}
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 1
+  sql:
+    init:
+      mode: always
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+    template:
+      observation-enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-components: always
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState,db
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${OTLP_ENDPOINT:http://localhost:4318/v1/traces}
+
+# В каждой строке лога виден сквозной идентификатор запроса (X-Request-ID)
+logging:
+  pattern:
+    level: "%5p [%X{request_id:-}]"

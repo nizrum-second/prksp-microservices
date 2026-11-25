@@ -1,0 +1,57 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: recommendation-service
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/rec_db}
+    username: ${DB_USER:rec_app}
+    password: ${DB_PASSWORD:lab_password}
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 1
+  sql:
+    init:
+      mode: always
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+    consumer:
+      auto-offset-reset: earliest
+    listener:
+      observation-enabled: true
+  reactor:
+    context-propagation: auto
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-components: always
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState,db
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${OTLP_ENDPOINT:http://localhost:4318/v1/traces}
+
+# Допустимое отклонение сложности видео от уровня пользователя (в уровнях CEFR)
+rec:
+  max-deviation: 1.0
+
+# Адрес video-service для синхронных запросов (WebClient)
+video-service:
+  url: ${VIDEO_SERVICE_URL:http://video-service:8080}
+
+# В каждой строке лога виден сквозной идентификатор запроса (X-Request-ID)
+logging:
+  pattern:
+    level: "%5p [%X{request_id:-}]"

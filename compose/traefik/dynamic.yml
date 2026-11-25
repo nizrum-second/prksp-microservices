@@ -1,0 +1,31 @@
+http:
+  routers:
+    stream:
+      rule: "Path(`/api/recommendations/stream`)"
+      entryPoints: [web]
+      priority: 100
+      middlewares: [stream-auth]
+      service: recommendation-service
+
+    gateway:
+      rule: "PathPrefix(`/`)"
+      entryPoints: [web]
+      priority: 1
+      service: krakend
+
+  middlewares:
+    stream-auth:
+      forwardAuth:
+        address: "http://auth-service:8080/api/auth/me"
+        authRequestHeaders: ["Authorization"]
+        authResponseHeaders: ["X-User-Id"]
+
+  services:
+    krakend:
+      loadBalancer:
+        servers:
+          - url: "http://krakend:8080"
+    recommendation-service:
+      loadBalancer:
+        servers:
+          - url: "http://recommendation-service:8080"
